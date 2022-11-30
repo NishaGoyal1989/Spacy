@@ -1,21 +1,15 @@
-import json
-from flask import render_template,redirect, url_for, request,Flask
+from flask import render_template,request,Flask
 #from flask_sqlalchemy import SQLAlchemy
 import nltk
 import spacy
 from spacy.tokens import SpanGroup
+import classy_classification
 #nltk.download('omw-1.4')
+nlp = spacy.load("en_core_web_md")
 app = Flask(__name__)
 
-nlp = spacy.load("en_core_web_md")
-from spacy.pipeline.spancat import DEFAULT_SPANCAT_MODEL
-config = {
-    "threshold": 0.5,
-    "spans_key": "labeled_spans",
-    "max_positive": None,
-    "model": DEFAULT_SPANCAT_MODEL,
-    "suggester": {"@misc": "spacy.ngram_suggester.v1", "sizes": [1, 2, 3]},
-}
+
+
 #nlp.add_pipe("spancat", config=config)
 text = "Backgammon is one of the oldest known board games. Its history can be traced back nearly 5,000 years to archeological discoveries in the Middle East. It is a two player game where each player has fifteen checkers which move between twenty-four points according to the roll of two dice."
 #doc = nlp(text)
@@ -106,14 +100,14 @@ def entity_ruler():
 @app.route('/entity_linker', methods = ['POST'])
 def entity_linker():
     d=[]
-    #nlp.add_pipe("entityLinker", last=True)
+    nlp.add_pipe("entityLinker", last=True)
     if request.method == 'POST':
         text = request.form['text']
         doc = nlp(text)
         all_linked_entities = doc._.linkedEntities
-        #for sent in doc.sents:
-            #d.append(sent._.linkedEntities)
-    return all_linked_entities 
+        for sent in doc.sents:
+            d.append(str(sent._.linkedEntities))
+    return d
 
 
 @app.route('/sentencizer', methods = ['POST'])
@@ -134,8 +128,11 @@ def spanCategorizer(text):
     #spans = doc.spans["sc"]
     #for span, confidence in zip(spans, spans.attrs["scores"]):
        # print(span.label_, confidence)
+
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
+    if request.method == 'POST':
+        text = request.form['text']
     data = {
         "furniture": ["This text is about chairs.",
                "Couches, benches and televisions.",
@@ -144,6 +141,7 @@ def textCategorizer():
                 "I hope to be getting a new stove today.",
                 "Do you also have some ovens."]
            }
+    #nlp.create_pipe("text_categorizer")       
     nlp.add_pipe("text_categorizer", 
         config={
             "data": data,
