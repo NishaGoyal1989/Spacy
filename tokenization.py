@@ -4,6 +4,9 @@ import nltk
 import spacy
 from spacy.tokens import SpanGroup
 import classy_classification
+from spacy.pipeline import TrainablePipe
+from spacy.language import Language
+from spacy_transformers import Transformer
 #nltk.download('omw-1.4')
 nlp = spacy.load("en_core_web_md")
 app = Flask(__name__)
@@ -150,6 +153,39 @@ def textCategorizer():
                 )
     doc=nlp(text)
     return(doc._.cats)
+
+@app.route('/tok2vec', methods = ['POST'])
+def tok2vec(): 
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        doc=nlp(text)
+        d.append(str(doc.tensor))
+    return d
+
+@app.route('/tokenizer', methods = ['POST'])
+def tokenizer(): 
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        doc=nlp(text)
+        for token in doc:
+            d.append(str(token))
+    return d
+
+@app.route('/transformer', methods = ['POST'])
+
+def transformer(): 
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        #nlp.add_pipe("transformer")
+        nlp = spacy.load("en_core_web_trf")
+        doc=nlp(text)
+        d.append(str(doc._.trf_data))
+    return d
+
+
 #lemmatizer(doc)
 #morphologizer(doc)
 #tagger(doc)
@@ -161,6 +197,8 @@ def textCategorizer():
 #sentencizer(doc)
 #spanCategorizer(text)
 #textCategorizer(text)
+#tok2vec(text)
+#tokenizer(text)
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
