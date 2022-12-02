@@ -174,7 +174,6 @@ def tokenizer():
     return d
 
 @app.route('/transformer', methods = ['POST'])
-
 def transformer(): 
     d=[]
     if request.method == 'POST':
@@ -199,6 +198,7 @@ def transformer():
 #textCategorizer(text)
 #tok2vec(text)
 #tokenizer(text)
+#transformer()
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
