@@ -1,22 +1,28 @@
 from flask import render_template,request,Flask
-#from flask_sqlalchemy import SQLAlchemy
 import nltk
 import spacy
 from spacy.tokens import SpanGroup
 import classy_classification
-from spacy.pipeline import TrainablePipe
 from spacy.language import Language
 from spacy_transformers import Transformer
 import pytextrank
+from spacy.tokens.span_group import SpanGroup
+from spacy.tokens import Span
 #nltk.download('omw-1.4')
+from spacy.pipeline.spancat import DEFAULT_SPANCAT_MODEL
+config = {
+    "threshold": 0.5,
+    "spans_key": "labeled_spans",
+    "max_positive": None,
+    "model": DEFAULT_SPANCAT_MODEL,
+    "suggester": {"@misc": "spacy.ngram_suggester.v1", "sizes": [1, 2, 3]},
+}
 nlp = spacy.load("en_core_web_md")
 app = Flask(__name__)
 
-
-
-#nlp.add_pipe("spancat", config=config)
 text = "Backgammon is one of the oldest known board games. Its history can be traced back nearly 5,000 years to archeological discoveries in the Middle East. It is a two player game where each player has fifteen checkers which move between twenty-four points according to the roll of two dice."
 #doc = nlp(text)
+
 @app.route('/attribute_ruler', methods = ['POST'])
 def attribute_ruler():
     d=[]
@@ -73,7 +79,6 @@ def parser():
            d.append((str(token),token.dep_))
     return d 
 
-
 @app.route('/entity_r', methods = ['POST'])    
 def entity_recognizer():
     d=[]
@@ -83,7 +88,6 @@ def entity_recognizer():
         for word in doc.ents:
             d.append((word.text,word.label_))
     return d 
-
 
 @app.route('/entity_ruler', methods = ['POST'])
 def entity_ruler():
@@ -113,7 +117,6 @@ def entity_linker():
             d.append(str(sent._.linkedEntities))
     return d
 
-
 @app.route('/sentencizer', methods = ['POST'])
 def sentencizer():
     sents_list = []
@@ -123,8 +126,6 @@ def sentencizer():
         for sent in doc.sents:
             sents_list.append(sent.text)
     return sents_list   
-
-
 
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
@@ -138,7 +139,7 @@ def textCategorizer():
                 "I hope to be getting a new stove today.",
                 "Do you also have some ovens."]
            }
-    #nlp.create_pipe("text_categorizer")       
+         
     nlp.add_pipe("text_categorizer", 
         config={
             "data": data,
@@ -177,16 +178,6 @@ def transformer():
         doc=nlp(text)
         d.append(str(doc._.trf_data))
     return d
-from spacy.pipeline.spancat import DEFAULT_SPANCAT_MODEL
-config = {
-    "threshold": 0.5,
-    "spans_key": "labeled_spans",
-    "max_positive": None,
-    "model": DEFAULT_SPANCAT_MODEL,
-    "suggester": {"@misc": "spacy.ngram_suggester.v1", "sizes": [1, 2, 3]},
-}
-from spacy.tokens.span_group import SpanGroup
-from spacy.tokens import Span
 
 def spanCategorizer(text):
     #nlp_spancat = spacy.load("spancat_model")
@@ -202,6 +193,7 @@ def spanCategorizer(text):
     #spans = doc.spans["sc"]
     #for span, confidence in zip(spans, spans.attrs["scores"]):
        # print(span.label_, confidence)
+
 @app.route('/keyphrases', methods = ['POST'])
 def phrases():
     d=[]
