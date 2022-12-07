@@ -7,6 +7,7 @@ import classy_classification
 from spacy.pipeline import TrainablePipe
 from spacy.language import Language
 from spacy_transformers import Transformer
+import pytextrank
 #nltk.download('omw-1.4')
 nlp = spacy.load("en_core_web_md")
 app = Flask(__name__)
@@ -90,13 +91,13 @@ def entity_ruler():
     patterns = [
                 {"label": "Game", "pattern": "Backgammon"}
             ]  
-    ruler = nlp.add_pipe("entity_ruler",after='ner') 
+    ruler = nlp.add_pipe("entity_ruler")  
     ruler.add_patterns(patterns)
      
     if request.method == 'POST':
         text = request.form['text']
         doc = nlp(text)
-        for word in doc.ents:
+        for word in doc.ents: 
             d.append((word.text,word.label_))
     return d
 
@@ -123,14 +124,7 @@ def sentencizer():
             sents_list.append(sent.text)
     return sents_list   
 
-def spanCategorizer(text):
-    
-    #nlp.add_pipe("spancat")
-    doc=nlp(text)
-    print(doc.spans[spans_key])
-    #spans = doc.spans["sc"]
-    #for span, confidence in zip(spans, spans.attrs["scores"]):
-       # print(span.label_, confidence)
+
 
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
@@ -183,7 +177,43 @@ def transformer():
         doc=nlp(text)
         d.append(str(doc._.trf_data))
     return d
+from spacy.pipeline.spancat import DEFAULT_SPANCAT_MODEL
+config = {
+    "threshold": 0.5,
+    "spans_key": "labeled_spans",
+    "max_positive": None,
+    "model": DEFAULT_SPANCAT_MODEL,
+    "suggester": {"@misc": "spacy.ngram_suggester.v1", "sizes": [1, 2, 3]},
+}
+from spacy.tokens.span_group import SpanGroup
+from spacy.tokens import Span
 
+def spanCategorizer(text):
+    #nlp_spancat = spacy.load("spancat_model")
+    #nlp.add_pipe("spancat",config=config)
+    doc=nlp(text)
+    sent_group = SpanGroup(doc=doc, name="sentences",spans=list(doc.sents))
+    doc.spans['sentences']=sent_group
+    Span.set_extension('mood',default=None)
+    for mood,span in zip(doc,doc.spans['sentences']):
+        span._.mood=mood
+    print(doc.spans)
+    
+    #spans = doc.spans["sc"]
+    #for span, confidence in zip(spans, spans.attrs["scores"]):
+       # print(span.label_, confidence)
+@app.route('/keyphrases', methods = ['POST'])
+def phrases():
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        nlp.add_pipe("textrank")
+        doc=nlp(text)
+        for phrase in doc._.phrases:
+            d.append(str(phrase.text))
+            d.append((str(phrase.rank), str(phrase.count)))
+            d.append(str(phrase.chunks))
+    return d
 
 #lemmatizer(doc)
 #morphologizer(doc)
@@ -199,6 +229,7 @@ def transformer():
 #tok2vec(text)
 #tokenizer(text)
 #transformer()
+#phrases()
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
