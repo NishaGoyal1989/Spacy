@@ -62,11 +62,9 @@ def tagger():
 def attribute_ruler():
     d=[]
     ruler = nlp.get_pipe("attribute_ruler")
-    patterns = [[
-                {"text": "Girl"}, {"text": "is"}
-            ]]
+    patterns =[[{"LOWER": "the"}, {"TEXT": "Who"}]]
     attrs = {"TAG": "NNP", "POS": "PROPN"}
-    ruler.add(patterns=patterns,attrs=attrs, index=0)
+    ruler.add(patterns=patterns,attrs=attrs, index=1)
     if request.method == 'POST':
         text = request.form['text']
         doc = nlp(text)
@@ -120,7 +118,7 @@ def entity_linker():
 def entity_ruler():
     d=[]
     patterns = [
-                {"label": "Subject", "pattern": "Data science"}
+                {"label": "Time-Period", "pattern": "digital era"}
             ]  
     ruler = nlp.add_pipe("entity_ruler")  
     ruler.add_patterns(patterns)
@@ -173,15 +171,21 @@ def transformer():
         d.append(str(doc._.trf_data))
     return d
 
-def spanCategorizer(text):
+@app.route('/spanCategorizer', methods = ['POST'])
+def spanCategorizer():
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text'] 
     sent_types=['inf','decl','frag','imp']
     doc=nlp(text)
     sent_group = SpanGroup(doc=doc, name="sentences",spans=list(doc.sents))
     doc.spans['sentences']=sent_group
-    Span.set_extension('mood',default=None)
+    Span.set_extension('mood',default=None,force=True)
     for mood,span in zip(sent_types,doc.spans['sentences']):
         span._.mood=mood
-    print(doc.spans['sentences'][2],doc.spans['sentences'][2]._.mood)   
+    for mood,span in zip(doc.spans['sentences'],doc.spans['sentences']):
+        d.append((span.text,span._.mood))
+    return d
     
 @app.route('/keyphrases', methods = ['POST'])
 def phrases():
