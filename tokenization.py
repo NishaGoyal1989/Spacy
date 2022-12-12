@@ -1,42 +1,41 @@
-from flask import render_template,request,Flask
 import nltk
 import spacy
-from spacy.tokens import SpanGroup
 import classy_classification
+import pytextrank
+from spacy.tokens import SpanGroup
+from flask import render_template,request,Flask
 from spacy.language import Language
 from spacy_transformers import Transformer
-import pytextrank
-from spacy.tokens.span_group import SpanGroup
+#from spacy.tokens.span_group import SpanGroup
 from spacy.tokens import Span
 #nltk.download('omw-1.4')
-from spacy.pipeline.spancat import DEFAULT_SPANCAT_MODEL
-config = {
-    "threshold": 0.5,
-    "spans_key": "labeled_spans",
-    "max_positive": None,
-    "model": DEFAULT_SPANCAT_MODEL,
-    "suggester": {"@misc": "spacy.ngram_suggester.v1", "sizes": [1, 2, 3]},
-}
+from collections import Counter
+from string import punctuation
+
 nlp = spacy.load("en_core_web_md")
 app = Flask(__name__)
 
 text = "Backgammon is one of the oldest known board games. Its history can be traced back nearly 5,000 years to archeological discoveries in the Middle East. It is a two player game where each player has fifteen checkers which move between twenty-four points according to the roll of two dice."
 #doc = nlp(text)
 
-@app.route('/attribute_ruler', methods = ['POST'])
-def attribute_ruler():
-    d=[]
-    ruler = nlp.get_pipe("attribute_ruler")
-    patterns = [[
-                {"text": "each"}, {"text": "player"}
-            ]]
-    attrs = {"TAG": "NNP", "POS": "PROPN"}
-    ruler.add(patterns=patterns,attrs=attrs, index=1)
+@app.route('/sentencizer', methods = ['POST'])
+def sentencizer():
+    sents_list = []
     if request.method == 'POST':
         text = request.form['text']
         doc = nlp(text)
-        for token in doc :
-           d.append((str(token),token.pos_,token.tag_))
+        for sent in doc.sents:
+            sents_list.append(sent.text)
+    return sents_list 
+
+@app.route('/tokenizer', methods = ['POST'])
+def tokenizer(): 
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        doc=nlp(text)
+        for token in doc:
+            d.append(str(token))
     return d
 
 @app.route('/lemma', methods = ['POST'])    
@@ -48,16 +47,6 @@ def lemmatizer():
         for token in doc :
            d.append((str(token),token.lemma_))
     return d 
-    
-@app.route('/morph', methods = ['POST'])    
-def morphologizer():
-    d=[]
-    if request.method == 'POST':
-        text = request.form['text']
-        doc = nlp(text)
-        for token in doc :
-           d.append((str(token),str(token.morph)))
-    return d 
 
 @app.route('/tagger', methods = ['POST'])    
 def tagger():
@@ -67,7 +56,23 @@ def tagger():
         doc = nlp(text)
         for token in doc :
            d.append((str(token),token.tag_,token.pos_))
-    return d 
+    return d    
+
+@app.route('/attribute_ruler', methods = ['POST'])
+def attribute_ruler():
+    d=[]
+    ruler = nlp.get_pipe("attribute_ruler")
+    patterns = [[
+                {"text": "Girl"}, {"text": "is"}
+            ]]
+    attrs = {"TAG": "NNP", "POS": "PROPN"}
+    ruler.add(patterns=patterns,attrs=attrs, index=0)
+    if request.method == 'POST':
+        text = request.form['text']
+        doc = nlp(text)
+        for token in doc :
+           d.append((str(token),token.pos_,token.tag_))
+    return d
 
 @app.route('/dependency_parser', methods = ['POST'])    
 def parser():
@@ -79,6 +84,16 @@ def parser():
            d.append((str(token),token.dep_))
     return d 
 
+@app.route('/morph', methods = ['POST'])    
+def morphologizer():
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        doc = nlp(text)
+        for token in doc :
+           d.append((str(token),str(token.morph)))
+    return d 
+
 @app.route('/entity_r', methods = ['POST'])    
 def entity_recognizer():
     d=[]
@@ -88,22 +103,6 @@ def entity_recognizer():
         for word in doc.ents:
             d.append((word.text,word.label_))
     return d 
-
-@app.route('/entity_ruler', methods = ['POST'])
-def entity_ruler():
-    d=[]
-    patterns = [
-                {"label": "Game", "pattern": "Backgammon"}
-            ]  
-    ruler = nlp.add_pipe("entity_ruler")  
-    ruler.add_patterns(patterns)
-     
-    if request.method == 'POST':
-        text = request.form['text']
-        doc = nlp(text)
-        for word in doc.ents: 
-            d.append((word.text,word.label_))
-    return d
 
 @app.route('/entity_linker', methods = ['POST'])
 def entity_linker():
@@ -117,16 +116,22 @@ def entity_linker():
             d.append(str(sent._.linkedEntities))
     return d
 
-@app.route('/sentencizer', methods = ['POST'])
-def sentencizer():
-    sents_list = []
+@app.route('/entity_ruler', methods = ['POST'])
+def entity_ruler():
+    d=[]
+    patterns = [
+                {"label": "Subject", "pattern": "Data science"}
+            ]  
+    ruler = nlp.add_pipe("entity_ruler")  
+    ruler.add_patterns(patterns)
+     
     if request.method == 'POST':
         text = request.form['text']
         doc = nlp(text)
-        for sent in doc.sents:
-            sents_list.append(sent.text)
-    return sents_list   
-
+        for word in doc.ents: 
+            d.append((word.text,word.label_))
+    return d
+ 
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
     if request.method == 'POST':
@@ -138,8 +143,7 @@ def textCategorizer():
         "kitchen": ["There also exist things like fridges.",
                 "I hope to be getting a new stove today.",
                 "Do you also have some ovens."]
-           }
-         
+           }    
     nlp.add_pipe("text_categorizer", 
         config={
             "data": data,
@@ -158,16 +162,6 @@ def tok2vec():
         d.append(str(doc.tensor))
     return d
 
-@app.route('/tokenizer', methods = ['POST'])
-def tokenizer(): 
-    d=[]
-    if request.method == 'POST':
-        text = request.form['text']
-        doc=nlp(text)
-        for token in doc:
-            d.append(str(token))
-    return d
-
 @app.route('/transformer', methods = ['POST'])
 def transformer(): 
     d=[]
@@ -180,20 +174,15 @@ def transformer():
     return d
 
 def spanCategorizer(text):
-    #nlp_spancat = spacy.load("spancat_model")
-    #nlp.add_pipe("spancat",config=config)
+    sent_types=['inf','decl','frag','imp']
     doc=nlp(text)
     sent_group = SpanGroup(doc=doc, name="sentences",spans=list(doc.sents))
     doc.spans['sentences']=sent_group
     Span.set_extension('mood',default=None)
-    for mood,span in zip(doc,doc.spans['sentences']):
+    for mood,span in zip(sent_types,doc.spans['sentences']):
         span._.mood=mood
-    print(doc.spans)
+    print(doc.spans['sentences'][2],doc.spans['sentences'][2]._.mood)   
     
-    #spans = doc.spans["sc"]
-    #for span, confidence in zip(spans, spans.attrs["scores"]):
-       # print(span.label_, confidence)
-
 @app.route('/keyphrases', methods = ['POST'])
 def phrases():
     d=[]
@@ -202,10 +191,32 @@ def phrases():
         nlp.add_pipe("textrank")
         doc=nlp(text)
         for phrase in doc._.phrases:
-            d.append(str(phrase.text))
-            d.append((str(phrase.rank), str(phrase.count)))
-            d.append(str(phrase.chunks))
+            d.append((str(phrase.count),str(phrase.text)))
+            d.sort(reverse=True)
+            #d.append((str(phrase.rank), str(phrase.count)))
     return d
+@app.route('/keywords', methods = ['POST'])
+def keywords():
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text']
+        output = set(get_hotwords(text))
+        most_common_list = Counter(output).most_common(10)
+        for item in most_common_list:
+            d.append(item[0])
+    return d
+
+def get_hotwords(text):
+    result = []
+    pos_tag = ['PROPN', 'ADJ', 'NOUN'] 
+    doc = nlp(text.lower()) 
+    for token in doc:
+        if(token.text in nlp.Defaults.stop_words or token.text in punctuation):
+            continue
+        if(token.pos_ in pos_tag):
+            result.append(token.text)
+    return result
+
 
 #lemmatizer(doc)
 #morphologizer(doc)
