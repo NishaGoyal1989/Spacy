@@ -131,13 +131,7 @@ def entity_ruler():
     return d
 
 
-ruler = nlp.add_pipe("span_ruler")
-patterns = [{"label": "ORG", "pattern": "Apple"},
-            {"label": "GPE", "pattern": [{"LOWER": "san"}, {"LOWER": "francisco"}]}]
-ruler.add_patterns(patterns)
 
-doc = nlp("Apple is opening its first big office in San Francisco.")
-print([(span.text, span.label_) for span in doc.spans["ruler"]]) 
 
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
@@ -195,9 +189,22 @@ def spanCategorizer():
     for mood,span in zip(doc.spans['sentences'],doc.spans['sentences']):
         d.append((span.text,span._.mood))
     return d
-    
+
+@app.route('/spanruler', methods = ['POST'])
+def spanruler():
+    d=[]
+    if request.method == 'POST':
+        text = request.form['text'] 
+    ruler = nlp.add_pipe("span_ruler")
+    patterns = [{"label": "ORG", "pattern": "Apple"},
+            {"label": "GPE", "pattern": [{"LOWER": "san"}, {"LOWER": "francisco"}]}]
+    ruler.add_patterns(patterns)
+    doc = nlp(text)
+    d.append([(span.text, span.label_) for span in doc.spans["ruler"]])
+    return d
+
 @app.route('/keyphrases', methods = ['POST'])
-def phrases():
+def keyphrases():
     d=[]
     if request.method == 'POST':
         text = request.form['text']
@@ -245,7 +252,7 @@ def get_hotwords(text):
 #tok2vec(text)
 #tokenizer(text)
 #transformer()
-#phrases()
+#keyphrases()
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
