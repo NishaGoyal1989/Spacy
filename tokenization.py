@@ -129,7 +129,16 @@ def entity_ruler():
         for word in doc.ents: 
             d.append((word.text,word.label_))
     return d
- 
+
+
+ruler = nlp.add_pipe("span_ruler")
+patterns = [{"label": "ORG", "pattern": "Apple"},
+            {"label": "GPE", "pattern": [{"LOWER": "san"}, {"LOWER": "francisco"}]}]
+ruler.add_patterns(patterns)
+
+doc = nlp("Apple is opening its first big office in San Francisco.")
+print([(span.text, span.label_) for span in doc.spans["ruler"]]) 
+
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
     if request.method == 'POST':
