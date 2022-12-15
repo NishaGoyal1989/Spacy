@@ -251,52 +251,7 @@ def spanresolver(text):
     output_prefix= DEFAULT_CLUSTER_PREFIX
     print(doc.spans[output_prefix + "_" + 2])
 
-@app.route('/sentence', methods = ['POST'])
-def sentence(): 
-    d={}
-    sents_list = []
-    token_list=[]
-    ent_list=[]
-    ent_link=[]
-    phrase_list=[]
-    nlp.add_pipe("entityLinker", last=True)
-    nlp.add_pipe("textrank")
-    if request.method == 'POST':
-        text = request.form['text']
-        doc=nlp(text)
-        for sent in doc.sents:
-            sents_list.append(sent.text)   
-        for token in doc:
-            token_list.append(str(token))
-        for word in doc.ents:
-            ent_list.append((word.text,word.label_))
-        all_linked_entities = doc._.linkedEntities
-        for sent in doc.sents:
-            ent_link.append(str(sent._.linkedEntities))
-        for phrase in doc._.phrases:
-            phrase_list.append((str(phrase.count),str(phrase.text)))
-            phrase_list.sort(reverse=True)    
-        d['Tokenizer']=token_list
-        d['Sentencizer']=sents_list
-        d['Entity Recognizer']=ent_list
-        d['Entity Linker']=ent_link
-        d['Key Phrases']=phrase_list
-    return d
 
-@app.route('/word', methods = ['POST'])    
-def word():
-    d={} 
-    if request.method == 'POST':
-        word = request.form['word']
-        doc = nlp(word)
-        for token in doc :          
-            d['Lemmatizer']=token.lemma_
-            d['Tagger']=token.tag_
-            d['Dependency Parser']=token.dep_
-            d['Morphologizer']=str(token.morph)
-            d['Word']=word
-           #d.append("Lemmatizer: "token.lemma_)
-    return d
 
 
 #lemmatizer(doc)
