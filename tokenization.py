@@ -29,17 +29,19 @@ def sentencizer():
     return sents_list 
 
 @app.route('/tokenizer', methods = ['POST'])
-def tokenizer(): 
+def tokenizer():  
     d=[]
     if request.method == 'POST':
         text = request.form['text']
-        doc=nlp(text)
+        doc = nlp(text)
         for token in doc:
             d.append(str(token))
-    return d
+    return d 
+
+ 
 
 @app.route('/lemma', methods = ['POST'])    
-def lemmatizer():
+def lemma():
     d=[]
     if request.method == 'POST':
         text = request.form['text']
@@ -47,7 +49,6 @@ def lemmatizer():
         for token in doc :
            d.append((str(token),token.lemma_))
     return d 
-
 @app.route('/tagger', methods = ['POST'])    
 def tagger():
     d=[]
@@ -129,9 +130,6 @@ def entity_ruler():
         for word in doc.ents: 
             d.append((word.text,word.label_))
     return d
-
-
-
 
 @app.route('/textCategorizer', methods = ['POST'])
 def textCategorizer():
@@ -215,6 +213,9 @@ def keyphrases():
             d.sort(reverse=True)
             #d.append((str(phrase.rank), str(phrase.count)))
     return d
+
+
+
 @app.route('/keywords', methods = ['POST'])
 def keywords():
     d=[]
@@ -237,6 +238,66 @@ def get_hotwords(text):
             result.append(token.text)
     return result
 
+def spanresolver(text):
+    from spacy_experimental.coref.span_resolver_component import DEFAULT_SPAN_RESOLVER_MODEL
+    from spacy_experimental.coref.coref_util import DEFAULT_CLUSTER_PREFIX, DEFAULT_CLUSTER_HEAD_PREFIX
+    config={
+        "model": DEFAULT_SPAN_RESOLVER_MODEL,
+        "input_prefix": DEFAULT_CLUSTER_HEAD_PREFIX,
+        "output_prefix": DEFAULT_CLUSTER_PREFIX,
+           },
+    nlp.add_pipe("experimental_span_resolver")  
+    doc=nlp(text)
+    output_prefix= DEFAULT_CLUSTER_PREFIX
+    print(doc.spans[output_prefix + "_" + 2])
+
+@app.route('/sentence', methods = ['POST'])
+def sentence(): 
+    d={}
+    sents_list = []
+    token_list=[]
+    ent_list=[]
+    ent_link=[]
+    phrase_list=[]
+    nlp.add_pipe("entityLinker", last=True)
+    nlp.add_pipe("textrank")
+    if request.method == 'POST':
+        text = request.form['text']
+        doc=nlp(text)
+        for sent in doc.sents:
+            sents_list.append(sent.text)   
+        for token in doc:
+            token_list.append(str(token))
+        for word in doc.ents:
+            ent_list.append((word.text,word.label_))
+        all_linked_entities = doc._.linkedEntities
+        for sent in doc.sents:
+            ent_link.append(str(sent._.linkedEntities))
+        for phrase in doc._.phrases:
+            phrase_list.append((str(phrase.count),str(phrase.text)))
+            phrase_list.sort(reverse=True)    
+        d['Tokenizer']=token_list
+        d['Sentencizer']=sents_list
+        d['Entity Recognizer']=ent_list
+        d['Entity Linker']=ent_link
+        d['Key Phrases']=phrase_list
+    return d
+
+@app.route('/word', methods = ['POST'])    
+def word():
+    d={} 
+    if request.method == 'POST':
+        word = request.form['word']
+        doc = nlp(word)
+        for token in doc :          
+            d['Lemmatizer']=token.lemma_
+            d['Tagger']=token.tag_
+            d['Dependency Parser']=token.dep_
+            d['Morphologizer']=str(token.morph)
+            d['Word']=word
+           #d.append("Lemmatizer: "token.lemma_)
+    return d
+
 
 #lemmatizer(doc)
 #morphologizer(doc)
@@ -253,6 +314,7 @@ def get_hotwords(text):
 #tokenizer(text)
 #transformer()
 #keyphrases()
+#spanresolver(text)
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
