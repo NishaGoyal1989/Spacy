@@ -123,11 +123,11 @@ def sentence():
         for phrase in doc._.phrases:
             phrase_list.append((str(phrase.count),str(phrase.text)))
             phrase_list.sort(reverse=True)    
-        d['Tokenizer']=token_list
-        d['Sentencizer']=sents_list
-        d['Entity Recognizer']=ent_list
-        d['Entity Linker']=ent_link
-        d['Key Phrases']=phrase_list
+        d['tokenizer']=token_list
+        d['sentencizer']=sents_list
+        d['entity_recognizer']=ent_list
+        d['entity_linker']=ent_link
+        d['key_phrases']=phrase_list
     return d
 
 @app.route('/word', methods = ['POST'])    
@@ -136,12 +136,13 @@ def word():
     if request.method == 'POST':
         word = request.form['word']
         doc = nlp(word)
-        for token in doc :          
-            d['Lemmatizer']=token.lemma_
-            d['Tagger']=token.tag_
-            d['Dependency Parser']=token.dep_
-            d['Morphologizer']=str(token.morph)
-            d['Word']=word
+        for token in doc : 
+            d['word']=word         
+            d['lemmatizer']=token.lemma_
+            d['tagger']=token.tag_
+            d['dependency_parser']=token.dep_
+            d['morphologizer']=str(token.morph)
+            
            #d.append("Lemmatizer: "token.lemma_)
     return d
 
