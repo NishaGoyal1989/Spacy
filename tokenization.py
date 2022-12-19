@@ -106,6 +106,8 @@ def sentence():
     ent_list=[]
     ent_link=[]
     phrase_list=[]
+    dep_list=[]
+    morph_list=[]   
     nlp.add_pipe("entityLinker", last=True)
     nlp.add_pipe("textrank")
     if request.method == 'POST':
@@ -115,11 +117,13 @@ def sentence():
             sents_list.append(sent.text)   
         for token in doc:
             token_list.append(str(token))
+            dep_list.append((str(token),token.dep_))
+            morph_list.append((str(token),str(token.morph)))
         for word in doc.ents:
             ent_list.append((word.text,word.label_))
-        all_linked_entities = doc._.linkedEntities
-        for sent in doc.sents:
-            ent_link.append(str(sent._.linkedEntities))
+        all_linked_entities = doc._.linkedEntities        
+        for i in doc._.linkedEntities:        
+            ent_link.append((i.get_url(),i.get_label(),i.get_description()))
         for phrase in doc._.phrases:
             phrase_list.append((str(phrase.count),str(phrase.text)))
             phrase_list.sort(reverse=True)    
@@ -128,6 +132,8 @@ def sentence():
         d['entity_recognizer']=ent_list
         d['entity_linker']=ent_link
         d['key_phrases']=phrase_list
+        d['morphologizer']=morph_list
+        d['dependency_parser']=dep_list 
     return d
 
 @app.route('/word', methods = ['POST'])    
@@ -141,11 +147,9 @@ def word():
             d['lemmatizer']=token.lemma_
             d['tagger']=token.tag_
             d['dependency_parser']=token.dep_
-            d['morphologizer']=str(token.morph)
-            
-           #d.append("Lemmatizer: "token.lemma_)
-    return d
+            d['morphologizer']=str(token.morph)        
 
+    return d
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
