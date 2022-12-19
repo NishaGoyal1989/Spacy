@@ -108,6 +108,7 @@ def sentence():
     phrase_list=[]
     dep_list=[]
     morph_list=[]   
+    #ent_link_dict={}
     nlp.add_pipe("entityLinker", last=True)
     nlp.add_pipe("textrank")
     if request.method == 'POST':
@@ -121,9 +122,13 @@ def sentence():
             morph_list.append((str(token),str(token.morph)))
         for word in doc.ents:
             ent_list.append((word.text,word.label_))
-        all_linked_entities = doc._.linkedEntities        
-        for i in doc._.linkedEntities:        
-            ent_link.append((i.get_url(),i.get_label(),i.get_description()))
+       # all_linked_entities = doc._.linkedEntities        
+        for i in doc._.linkedEntities:   
+            ent_link_dict={} 
+            ent_link_dict['url']= i.get_url()
+            ent_link_dict['label']= i.get_label() 
+            ent_link_dict['desc']= i.get_description() 
+            ent_link.append(ent_link_dict) 
         for phrase in doc._.phrases:
             phrase_list.append((str(phrase.count),str(phrase.text)))
             phrase_list.sort(reverse=True)    
@@ -150,6 +155,8 @@ def word():
             d['morphologizer']=str(token.morph)        
 
     return d
+
+#for i in doc._.linkedEntities:
 #to run the app in debug mode
 if __name__ == "__main__":
     app.run(debug = True)
